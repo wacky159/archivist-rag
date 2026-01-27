@@ -18,3 +18,7 @@ openspec
 .github/prompts
 .github/skills
 .opencode
+
+# Project data
+data/
+.env
