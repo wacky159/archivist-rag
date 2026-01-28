@@ -9,6 +9,10 @@ from src.ingestion.splitter import split_documents
 
 
 def get_existing_hashes(vectorstore: Chroma) -> set[str]:
+    """回傳向量庫中已存在的 file_hash 集合。
+
+    用於增量 ingestion：未變更的檔案（相同 hash）可直接跳過。
+    """
     try:
         results = vectorstore.get(include=["metadatas"])
         if results and results.get("metadatas"):
@@ -21,6 +25,11 @@ def get_existing_hashes(vectorstore: Chroma) -> set[str]:
 
 
 def delete_documents_by_hash(vectorstore: Chroma, file_hash: str) -> None:
+    """針對特定 file_hash 做 best-effort 清理。
+
+    這主要是安全網（例如寫入中斷造成半套資料）。避免重複的主要機制仍是：
+    若 collection 已存在該 hash，就跳過寫入。
+    """
     try:
         results = vectorstore.get(where={"file_hash": file_hash}, include=["metadatas"])
         if results and results.get("ids"):
@@ -33,6 +42,11 @@ def run_ingestion(
     notes_path: Path | None = None,
     chroma_path: Path | None = None,
 ) -> dict:
+    """將 Markdown 筆記 ingest 進 ChromaDB。
+
+    管線：load -> split -> embed -> store。
+    透過 metadata 中的 file_hash 做增量更新，讓 ingestion 更快。
+    """
     notes_path = notes_path or settings.notes_path
     chroma_path = chroma_path or settings.chroma_path
 
@@ -57,6 +71,7 @@ def run_ingestion(
 
     for chunk in chunks:
         file_hash = chunk.metadata.get("file_hash")
+        # 只寫入向量庫中尚未存在的檔案版本（file_hash）。
         if file_hash and file_hash not in existing_hashes:
             if file_hash not in updated_hashes:
                 delete_documents_by_hash(vectorstore, file_hash)

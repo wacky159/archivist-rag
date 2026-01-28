@@ -1,6 +1,7 @@
 import sys
 from pathlib import Path
 
+# 允許 `streamlit run app.py` 直接執行（不必先以 editable install 安裝）。
 sys.path.insert(0, str(Path(__file__).parent))
 
 import streamlit as st
@@ -10,6 +11,7 @@ from src.retrieval.vectorstore import get_vectorstore
 
 
 def check_ollama_connection() -> bool:
+    """本機 Ollama server 健康檢查（embedding 與 LLM 都會用到）。"""
     try:
         import httpx
         from src.config import settings
@@ -21,6 +23,7 @@ def check_ollama_connection() -> bool:
 
 
 def check_database_has_documents() -> bool:
+    """若 Chroma collection 至少有一筆資料則回傳 True。"""
     try:
         vectorstore = get_vectorstore()
         results = vectorstore.get(limit=1)
@@ -30,6 +33,7 @@ def check_database_has_documents() -> bool:
 
 
 def display_sources(sources: list[dict]):
+    """以精簡、易讀的方式呈現檢索來源。"""
     if not sources:
         return
 
@@ -50,6 +54,7 @@ def display_sources(sources: list[dict]):
 
 
 def main():
+    """RAG 管線的 Streamlit chat UI。"""
     st.set_page_config(
         page_title="Archivist-RAG",
         page_icon="📚",
@@ -68,9 +73,11 @@ def main():
         st.stop()
 
     if "messages" not in st.session_state:
+        # 對話紀錄。每筆為 {role, content}。
         st.session_state.messages = []
 
     if "sources" not in st.session_state:
+        # 對應：assistant 訊息索引 -> sources 清單。
         st.session_state.sources = {}
 
     for i, message in enumerate(st.session_state.messages):

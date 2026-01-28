@@ -1,5 +1,9 @@
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 
+# Prompt 策略：
+# - 提供帶編號引用的 context（[1], [2], ...）
+# - 明確要求模型只能依據提供的筆記回答
+# - 若資料不足，要求模型直說不足
 RAG_SYSTEM_TEMPLATE = """你是一個專門回答個人知識庫問題的助手。請根據以下檢索到的筆記內容回答問題。
 
 規則：
@@ -15,6 +19,7 @@ RAG_HUMAN_TEMPLATE = """{question}"""
 
 
 def get_rag_prompt() -> ChatPromptTemplate:
+    """回傳 RAG 生成用的 chat prompt。"""
     return ChatPromptTemplate.from_messages(
         [
             ("system", RAG_SYSTEM_TEMPLATE),
@@ -24,6 +29,13 @@ def get_rag_prompt() -> ChatPromptTemplate:
 
 
 def format_docs_as_context(docs: list[dict]) -> str:
+    """將檢索到的 chunks 格式化成單一 context 字串。
+
+    會包含：
+    - 引用用 index（例如 [1]）
+    - source 路徑
+    - 可用時加入標題麵包屑（headers）
+    """
     formatted_parts = []
     for doc in docs:
         source = doc.get("source", "Unknown")

@@ -10,6 +10,7 @@ from src.retrieval.chain import retrieve_with_sources
 
 
 def get_llm() -> ChatOllama:
+    """用於回答生成的 LLM（與 retrieval/compression 用的 LLM 分開設定）。"""
     return ChatOllama(
         model=settings.llm_model,
         base_url=settings.ollama_base_url,
@@ -18,6 +19,7 @@ def get_llm() -> ChatOllama:
 
 
 def create_rag_chain():
+    """建立 LCEL 生成鏈：prompt -> LLM -> string output。"""
     prompt = get_rag_prompt()
     llm = get_llm()
     output_parser = StrOutputParser()
@@ -26,6 +28,7 @@ def create_rag_chain():
 
 
 def invoke_rag(question: str) -> dict[str, Any]:
+    """同步執行 RAG，回傳 answer + sources。"""
     sources = retrieve_with_sources(question)
 
     if not sources:
@@ -51,6 +54,13 @@ def invoke_rag(question: str) -> dict[str, Any]:
 
 
 def stream_rag(question: str) -> Iterator[dict[str, Any]]:
+    """以 generator 形式執行 RAG，適合 UI 做 streaming。
+
+    事件協議：
+    - {type: "sources", content: <list>}  在 token 之前先送出一次
+    - {type: "token", content: <str>}     生成過程中會送出多次
+    - {type: "done", content: None}       結束時送出一次
+    """
     sources = retrieve_with_sources(question)
 
     if not sources:
@@ -72,6 +82,7 @@ def stream_rag(question: str) -> Iterator[dict[str, Any]]:
             "question": question,
         }
     ):
+        # 這裡的 chunk 是模型串流輸出的文字片段（不是文件切片的 chunk）。
         yield {"type": "token", "content": chunk}
 
     yield {"type": "done", "content": None}

@@ -1,6 +1,7 @@
 import sys
 from pathlib import Path
 
+# 允許直接執行此腳本（不必先以 editable install 安裝套件）。
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.config import settings
@@ -8,6 +9,7 @@ from src.ingestion.pipeline import run_ingestion
 
 
 def check_ollama_connection() -> bool:
+    """對本機 Ollama server 做輕量健康檢查。"""
     try:
         import httpx
 
@@ -18,6 +20,7 @@ def check_ollama_connection() -> bool:
 
 
 def main():
+    """離線 ingestion 的 CLI 入口點。"""
     print("Archivist-RAG Ingestion")
     print("=" * 40)
 
@@ -50,6 +53,7 @@ def main():
         print(f"Error: {e}")
         sys.exit(1)
     except Exception as e:
+        # CLI 輸出保持簡潔；需要更深入 debug 時可直接在 Python 內呼叫 ingestion function。
         print(f"Error during ingestion: {e}")
         sys.exit(1)
 
